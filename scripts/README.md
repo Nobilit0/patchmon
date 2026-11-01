@@ -21,11 +21,9 @@ Run these commands on the machine where you want to install PatchMon auto-patchi
 ```bash
 curl -fL -o install-patchmon.sh \
   https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh
-```
-```bash
+
 chmod +x install-patchmon.sh
-```
-```bash
+
 sudo ./install-patchmon.sh
 ```
 This downloads the installer locally, makes it executable, and runs it with root privileges.
