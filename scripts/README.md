@@ -30,7 +30,7 @@ sudo ./install-patchmon.sh
 This downloads the installer locally, makes it executable, and runs it with root privileges.
 
 
-##O ption 2: One-line installation:
+## Option 2: One-line installation:
 
 **If you trust the script and have already reviewed it**
 ```bash
