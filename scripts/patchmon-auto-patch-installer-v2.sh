@@ -55,22 +55,33 @@ install_dependencies() {
     local missing=()
     command -v curl >/dev/null 2>&1 || missing+=(curl)
     command -v unzip >/dev/null 2>&1 || missing+=(unzip)
-    command -v python3 >/dev/null 2>&1 || missing+=(python3)
     command -v systemctl >/dev/null 2>&1 || die "systemd/systemctl is required on this machine."
 
+    if command -v python3 >/dev/null 2>&1 && python3 --version >/dev/null 2>&1; then
+        ok "Python already installed: $(python3 --version 2>&1)"
+    else
+        warn "Python 3 is missing or cannot run. It will be installed automatically."
+        missing+=(python3)
+    fi
+
     if ((${#missing[@]})); then
+        info "Installing required dependencies: ${missing[*]}"
         if command -v apt-get >/dev/null 2>&1; then
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y "${missing[@]}" python3-venv
         elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y "${missing[@]}" python3-pip
+            dnf install -y "${missing[@]}"
         elif command -v yum >/dev/null 2>&1; then
-            yum install -y "${missing[@]}" python3-pip
+            yum install -y "${missing[@]}"
         else
             die "Missing dependencies (${missing[*]}) and no supported package manager found."
         fi
     fi
+
+    command -v python3 >/dev/null 2>&1 || die "Python 3 installation failed: python3 is not on PATH."
+    python3 --version >/dev/null 2>&1 || die "Python 3 was found but cannot execute."
     PYTHON_BIN="$(command -v python3)"
+    ok "Using $PYTHON_BIN ($("$PYTHON_BIN" --version 2>&1))"
 }
 
 download_and_extract() {
@@ -112,10 +123,20 @@ PY
 }
 
 configure_environment() {
-    local patchmon_url username password device_id
-    prompt patchmon_url "PatchMon base URL (no trailing slash)" "http://192.168.2.15:3000"
+    local patchmon_url username password device_id use_local server_ip server_port
+    echo "PatchMon server address:"
+    if confirm "Assume PatchMon is running on this same machine (127.0.0.1:3000)?"; then
+        patchmon_url="http://127.0.0.1:3000"
+    else
+        prompt server_ip "PatchMon server IP address or hostname" "192.168.2.15"
+        prompt server_port "PatchMon port" "3000"
+        [[ "$server_ip" =~ ^[A-Za-z0-9.-]+$ ]] || die "Invalid IP address or hostname."
+        [[ "$server_port" =~ ^[0-9]+$ ]] && (( server_port >= 1 && server_port <= 65535 )) || die "Invalid TCP port."
+        patchmon_url="http://${server_ip}:${server_port}"
+    fi
     patchmon_url="${patchmon_url%/}"
     [[ "$patchmon_url" =~ ^https?://[^[:space:]]+$ ]] || die "Invalid PatchMon URL."
+    info "Using PatchMon URL: $patchmon_url"
     prompt username "PatchMon username"
     [[ -n "$username" ]] || die "Username cannot be empty."
 
@@ -153,13 +174,20 @@ configure_environment() {
 
 setup_venv() {
     if ! "$PYTHON_BIN" -m venv "$INSTALL_DIR/venv"; then
+        warn "Python 3 virtual environment support is missing. Installing it now."
         if command -v apt-get >/dev/null 2>&1; then
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install -y python3-venv
-            "$PYTHON_BIN" -m venv "$INSTALL_DIR/venv"
+        elif command -v dnf >/dev/null 2>&1; then
+            dnf install -y python3-virtualenv || die "Install a Python 3 venv provider for this distribution."
+        elif command -v yum >/dev/null 2>&1; then
+            yum install -y python3-virtualenv || die "Install a Python 3 venv provider for this distribution."
         else
-            die "Could not create Python virtual environment. Install python3-venv and rerun."
+            die "Cannot install Python virtual environment support without apt/dnf/yum."
         fi
+        rm -rf -- "$INSTALL_DIR/venv"
+        "$PYTHON_BIN" -m venv "$INSTALL_DIR/venv" \
+            || die "Could not create Python virtual environment after installing venv support."
     fi
     chown -R root:root "$INSTALL_DIR"
     chmod 0750 "$INSTALL_DIR"
@@ -215,7 +243,7 @@ configure_timer() {
     echo "  2) Weekly"
     echo "  3) Monthly"
     echo "  4) Custom systemd OnCalendar expression"
-    local choice
+    local choice daily_choice interval start_hour start_minute hour_list h
     while true; do
         prompt choice "Choose 1-4" "1"
         [[ "$choice" =~ ^[1-4]$ ]] && break
@@ -226,7 +254,51 @@ configure_timer() {
     monthday=""
     custom=""
     case "$choice" in
-        1) frequency="daily" ;;
+        1)
+            frequency="daily"
+            echo
+            echo "Daily schedule:"
+            echo "  1) Once daily"
+            echo "  2) Every 2 hours"
+            echo "  3) Every 4 hours"
+            echo "  4) Every 6 hours"
+            echo "  5) Every 8 hours"
+            echo "  6) Every 12 hours"
+            while true; do
+                prompt daily_choice "Choose 1-6" "1"
+                [[ "$daily_choice" =~ ^[1-6]$ ]] && break
+                warn "Choose 1, 2, 3, 4, 5, or 6."
+            done
+            case "$daily_choice" in
+                1) interval=24 ;;
+                2) interval=2 ;;
+                3) interval=4 ;;
+                4) interval=6 ;;
+                5) interval=8 ;;
+                6) interval=12 ;;
+            esac
+            if (( interval == 24 )); then
+                calendar="$(calendar_for_schedule "$start_time" daily "" "" "")"
+            else
+                start_hour=$((10#${start_time%%:*}))
+                start_minute="${start_time##*:}"
+                hour_list=""
+                # Include all occurrences within 24 hours, including hours
+                # before the chosen start time on subsequent days.
+                local all_hours=() formatted_hours=() hour
+                for ((h=0; h<24; h+=interval)); do
+                    hour=$(((start_hour + h) % 24))
+                    all_hours+=("$hour")
+                done
+                # Sort numerically so systemd receives a valid ordered list.
+                mapfile -t all_hours < <(printf '%s\n' "${all_hours[@]}" | sort -n)
+                for hour in "${all_hours[@]}"; do
+                    formatted_hours+=("$(printf '%02d' "$hour")")
+                done
+                hour_list="$(IFS=,; echo "${formatted_hours[*]}")"
+                calendar="*-*-* ${hour_list}:${start_minute}:00"
+            fi
+            ;;
         2)
             frequency="weekly"
             prompt weekday "Day of week (Mon, Tue, Wed, Thu, Fri, Sat, Sun)" "Sun"
@@ -246,7 +318,7 @@ configure_timer() {
 
     if [[ "$frequency" == "custom" ]]; then
         calendar="$custom"
-    else
+    elif [[ "$frequency" != "daily" ]]; then
         calendar="$(calendar_for_schedule "$start_time" "$frequency" "$weekday" "$monthday" "")"
     fi
 
