@@ -19,7 +19,8 @@ What's included
 ## Option 1: Download and install
 Run these commands on the machine where you want to install PatchMon auto-patching:
 ```bash
-curl -fL -o install-patchmon.sh \ https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh
+curl -fL -o install-patchmon.sh \
+  https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh
 ```
 ```bash
 chmod +x install-patchmon.sh
