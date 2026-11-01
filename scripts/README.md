@@ -138,3 +138,14 @@ sudo tail -f /var/log/patchmon-auto-patch/patchmon-auto-patch.log
 The API response's exact trigger completion semantics and all possible terminal
 run statuses have not yet been independently documented. Review logs and
 PatchMon's UI after the first manually supervised run.
+
+## Important Info
+
+Here is a list of the newly configured items:
+
+Environment: /etc/patchmon-auto-patch.env (root:root, 0600)
+Program:     /opt/patchmon-auto-patch/patchmon_auto_patch.py
+Logs:        /var/log/patchmon-auto-patch/patchmon-auto-patch.log
+Timer:       systemctl status patchmon-auto-patch.timer
+Service:     systemctl start patchmon-auto-patch.service
+Logs:        journalctl -u patchmon-auto-patch.service -n 100 --no-pager
