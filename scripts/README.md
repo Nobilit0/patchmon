@@ -1,3 +1,41 @@
+Automated Install::
+
+What's included
+- Automatically checks for Python 3 and installs it if missing.
+- Installs Python virtual-environment support when needed.
+- Prompts for the PatchMon server IP or offers 127.0.0.1:3000.
+- Offers daily, weekly, monthly, and custom schedules.
+- Supports running every 2, 4, 6, 8, or 12 hours.
+- Offers a dry-run before enabling automatic patching.
+
+- 
+Option 1: Download and install
+Run these commands on the machine where you want to install PatchMon auto-patching:
+curl -fL -o install-patchmon.sh \
+  https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh
+
+chmod +x install-patchmon.sh
+
+sudo ./install-patchmon.sh
+
+This downloads the installer locally, makes it executable, and runs it with root privileges.
+
+
+Option 2: One-line installation:
+**If you trust the script and have already reviewed it**
+curl -fsSL https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh | sudo bash
+
+This executes the installer immediately without saving a local copy.
+
+
+Option 3: Single command with local download:
+curl -fsSL -o /tmp/install-patchmon.sh https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh && sudo bash /tmp/install-patchmon.sh
+
+
+
+
+Manual Install::
+
 # PatchMon Auto-Patch
 
 Daily PatchMon `patch_all` automation for Linux and Windows hosts.
