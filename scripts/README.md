@@ -33,7 +33,7 @@ This downloads the installer locally, makes it executable, and runs it with root
 
 **If you trust the script and have already reviewed it**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh | sudo bash
+sudo bash -c 'bash <(curl -fsSL https://raw.githubusercontent.com/Nobilit0/patchmon/main/scripts/patchmon-auto-patch-installer-v2.sh)'
 ```
 This executes the installer immediately without saving a local copy.
 
