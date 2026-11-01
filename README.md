@@ -1,2 +1,2 @@
 # patchmon
-Patchmon ai goop script to automate patching
+Patchmon ai slop script to automate patching
