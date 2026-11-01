@@ -143,9 +143,9 @@ PatchMon's UI after the first manually supervised run.
 
 Here is a list of the newly configured items:
 
--Environment: /etc/patchmon-auto-patch.env (root:root, 0600)
--Program:     /opt/patchmon-auto-patch/patchmon_auto_patch.py
--Logs:        /var/log/patchmon-auto-patch/patchmon-auto-patch.log
--Timer:       systemctl status patchmon-auto-patch.timer
--Service:     systemctl start patchmon-auto-patch.service
--Logs:        journalctl -u patchmon-auto-patch.service -n 100 --no-pager
+-Environment: /etc/patchmon-auto-patch.env (root:root, 0600).
+-Program:     /opt/patchmon-auto-patch/patchmon_auto_patch.py.
+-Logs:        /var/log/patchmon-auto-patch/patchmon-auto-patch.log.
+-Timer:       systemctl status patchmon-auto-patch.timer.
+-Service:     systemctl start patchmon-auto-patch.service.
+-Logs:        journalctl -u patchmon-auto-patch.service -n 100 --no-pager.
